@@ -39,6 +39,7 @@ jobs:
         template: ./deploy/main.bicep
         parameters: environmentType=${{ env.ENVIRONMENT_TYPE }}
         deploymentMode: Validate
+
   preview:
      runs-on: ubuntu-latest
      needs: [lint, validate]
@@ -58,9 +59,11 @@ jobs:
          parameters: >
            environmentType=${{ env.ENVIRONMENT_TYPE }}
          additionalArguments: --what-if
+         
   deploy:
     runs-on: ubuntu-latest
-    needs: [preview]
+    environment: Website
+    needs: preview
     steps:
     - uses: actions/checkout@v3
     - uses: azure/login@v1
