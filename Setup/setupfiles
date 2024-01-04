@@ -1,0 +1,34 @@
+githubOrganizationName='wardy1'
+githubRepositoryName='BicepValidate1'
+
+
+applicationRegistrationDetails=$(az ad app create --display-name 'BicepValidate1')
+applicationRegistrationObjectId=$(echo $applicationRegistrationDetails | jq -r '.id')
+applicationRegistrationAppId=$(echo $applicationRegistrationDetails | jq -r '.appId')
+
+az ad app federated-credential create \
+   --id $applicationRegistrationObjectId \
+   --parameters "{\"name\":\"BicepValidate1\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:${githubOrganizationName}/${githubRepositoryName}:environment:Website\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
+
+az ad app federated-credential create \
+   --id $applicationRegistrationObjectId \
+   --parameters "{\"name\":\"BicepValidate1-test-branch\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:${githubOrganizationName}/${githubRepositoryName}:ref:refs/heads/main\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
+
+
+
+   //Create a resource group in Azure and grant the workload identity access
+
+resourceGroupResourceId=$(az group create --name rg-bicepvalidate --location uksouth --query id --output tsv)
+
+az ad sp create --id $applicationRegistrationObjectId
+az role assignment create \
+  --assignee $applicationRegistrationAppId \
+  --role Contributor \
+  --scope /subscriptions/5e0b33cf-2cfb-487b-ac44-f9877e08edb8/resourceGroups/rg-bicepvalidate
+
+
+  // Prepare GiHub Secrets
+
+  echo "AZURE_CLIENT_ID: $applicationRegistrationAppId"
+echo "AZURE_TENANT_ID: $(az account show --query tenantId --output tsv)"
+echo "AZURE_SUBSCRIPTION_ID: $(az account show --query id --output tsv)"
